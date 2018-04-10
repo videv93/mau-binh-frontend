@@ -70,14 +70,14 @@ class Player extends Component {
   }
   render() {
     return (
-      <div>
-        <div>
+      <div style={{background: 'green'}}>
+        <div style={{borderStyle: '5px green'}}>
           {this.props.chi3.map(o => <Card styleName={Card1} rank={o.rank} suit={o.suit}/>)}
         </div>
-        <div>
+        <div style={{borderStyle: '5px green'}}>
           {this.props.chi2.map(o => <Card styleName={Card1} rank={o.rank} suit={o.suit}/>)}
         </div>
-        <div>
+        <div style={{borderStyle: '5px green'}}>
           {this.props.chi1.map(o => <Card styleName={Card1} rank={o.rank} suit={o.suit}/>)}
         </div>
       </div>
@@ -92,8 +92,16 @@ class Card extends Component {
 
   constructor(props) {
     super(props);
-    this.ranks = ["A", "K", "Q", "J", 10, 9, 8, 7, 6, 5, 4, 3, 2];
-    this.suits = ["clubs", "heart", "spade", "diamond"];
+    this.state = {
+      isSelect: false
+    }
+  }
+
+  handleClick(rank, suit) {
+    this.setState({
+      isSelect: !this.state.isSelect
+    });
+    alert('onClick ' + rank + ' ' + suit);
   }
 
   render() {
@@ -104,7 +112,10 @@ class Card extends Component {
           height: 'auto',
           width: 'auto',
           maxWidth: '80px',
-          maxHeight: '120px',}}
+          maxHeight: '120px',
+          border: 'solid 1px red',
+          backgroundColor: 'white'}}
+          onClick={() => {this.handleClick(this.props.rank, this.props.suit)}}
         />
       </span>
     );
