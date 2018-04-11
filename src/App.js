@@ -148,28 +148,40 @@ class Game extends Component {
     }
     return ans;
   }
+  validate(oldIndex, newIndex) {
+    var ans;
+    if (Math.abs(newIndex - oldIndex ) > 12) {
+      ans = false;
+    } else {
+      ans = true;
+    }
+    return ans;
+  }
   handleClick(id) {
     // alert('onClick ' + id);
     if (this.state.selectIndex != -1) {
       // alert(this.state.selectIndex);
-      var cards = this.state.cards;
-      var selectedIdex = this.state.selectIndex;
+      var validate = this.validate(this.state.selectIndex, id);
+      if (validate) {
+        var cards = this.state.cards;
+        var selectedIdex = this.state.selectIndex;
 
-      var t = cards[selectedIdex];
-      cards[selectedIdex] = cards[id];
-      cards[id] = t;
+        var t = cards[selectedIdex];
+        cards[selectedIdex] = cards[id];
+        cards[id] = t;
 
-      // set selected attribute of selectIndex card to false
-      cards[id].isSelected = false;
+        // set selected attribute of selectIndex card to false
+        cards[id].isSelected = false;
 
-      // update cards result
-      var cardResults = this.calculate(cards);
+        // update cards result
+        var cardResults = this.calculate(cards);
 
-      this.setState({
-        cards: cards,
-        cardResults: cardResults,
-        selectIndex: -1
-      });
+        this.setState({
+          cards: cards,
+          cardResults: cardResults,
+          selectIndex: -1
+        });
+      }
     } else {
       // alert('Set slected index to ' + id);
       this.state.cards[id].isSelected = true;
