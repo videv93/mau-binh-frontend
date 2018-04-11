@@ -18,6 +18,9 @@ class Game extends Component {
       selectIndex: -1
     }
   }
+  componentDidMount() {
+    this.update();
+  }
   getCard(i) {
     const ranks = [2,3,4,5,6,7,8,9,10,'J', 'Q', 'K', 'A'];
     const suits = ["spade", "clubs", "diamond", "heart"];
@@ -40,7 +43,7 @@ class Game extends Component {
       // alert(this.state.selectIndex);
       var cards = this.state.cards;
       var selectedIdex = this.state.selectIndex;
-      
+
       var t = cards[selectedIdex];
       cards[selectedIdex] = cards[id];
       cards[id] = t;
@@ -87,13 +90,74 @@ class Game extends Component {
     )
   }
   render() {
+    var player1 = {
+      chi1: this.state.cards.slice(0,5),
+      chi2: this.state.cards.slice(5,10),
+      chi3: this.state.cards.slice(10,13),
+    };
+
+    var player2 = {
+      chi1: this.state.cards.slice(13,18),
+      chi2: this.state.cards.slice(18,23),
+      chi3: this.state.cards.slice(23,26),
+    };
+
+    var player3 = {
+      chi1: this.state.cards.slice(26,31),
+      chi2: this.state.cards.slice(31,36),
+      chi3: this.state.cards.slice(36,39),
+    };
+
+    var player4 = {
+      chi1: this.state.cards.slice(39,44),
+      chi2: this.state.cards.slice(44,49),
+      chi3: this.state.cards.slice(49),
+    };
     return (
       <div style={{background: 'green'}}>
         <div>
           <button onClick={() => {this.update();}}>Start</button>
           <button onClick={() => {this.swap();}}>Swap</button>
         </div>
-        {this.state.cards.map((o, i) => <Card id={i} onClick={() => {this.handleClick(i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+        <table style={{width:'100%'}}>
+          <tbody>
+            <tr>
+              <td></td>
+              <td>
+                <h1>Player 1</h1>
+                <div>{player1.chi3.map((o, i) => <Card id={10+i} onClick={() => {this.handleClick(10+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>{player1.chi2.map((o, i) => <Card id={5+i} onClick={() => {this.handleClick(5+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>{player1.chi1.map((o, i) => <Card id={i} onClick={() => {this.handleClick(i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <h1>Player 2</h1>
+                <div>{player2.chi3.map((o, i) => <Card id={23+i} onClick={() => {this.handleClick(23+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>{player2.chi2.map((o, i) => <Card id={18+i} onClick={() => {this.handleClick(18+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>{player2.chi1.map((o, i) => <Card id={13+i} onClick={() => {this.handleClick(13+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+              </td>
+              <td></td>
+              <td>
+                <h1>Player 3</h1>
+                <div>{player3.chi3.map((o, i) => <Card id={36+i} onClick={() => {this.handleClick(36+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>{player3.chi2.map((o, i) => <Card id={31+i} onClick={() => {this.handleClick(31+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>{player3.chi1.map((o, i) => <Card id={26+i} onClick={() => {this.handleClick(26+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+              </td>
+            </tr>
+            <tr>
+              <td></td>
+              <td>
+                <h1>Player 4</h1>
+                <div>{player4.chi3.map((o, i) => <Card id={49+i} onClick={() => {this.handleClick(49+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>{player4.chi2.map((o, i) => <Card id={44+i} onClick={() => {this.handleClick(44+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>{player4.chi1.map((o, i) => <Card id={39+i} onClick={() => {this.handleClick(39+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                </td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     )
   }
@@ -123,8 +187,8 @@ class Card extends Component {
           <img src={imgSrc} alt={""} style={{
             height: 'auto',
             width: 'auto',
-            maxWidth: '80px',
-            maxHeight: '120px',
+            maxWidth: '60px',
+            maxHeight: '100px',
             border: 'solid 1px red',
             backgroundColor: 'white',
             transform: 'scale(1.25, 1.25)',
@@ -139,8 +203,8 @@ class Card extends Component {
         <img src={imgSrc} alt={""} style={{
           height: 'auto',
           width: 'auto',
-          maxWidth: '80px',
-          maxHeight: '120px',
+          maxWidth: '60px',
+          maxHeight: '100px',
           border: 'solid 1px red',
           backgroundColor: 'white'}}
           onClick={() => this.props.onClick(this.props.id)}
