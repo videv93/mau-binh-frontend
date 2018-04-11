@@ -150,7 +150,7 @@ class Game extends Component {
   }
   validate(oldIndex, newIndex) {
     var ans;
-    if (Math.abs(newIndex - oldIndex ) > 12) {
+    if (Math.floor(newIndex / 13) != Math.floor(oldIndex / 13)) {
       ans = false;
     } else {
       ans = true;
