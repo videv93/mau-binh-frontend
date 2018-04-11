@@ -14,74 +14,87 @@ class Game extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      players : []
+      cards: [],
+      selectIndex: -1
     }
   }
   getCard(i) {
     const ranks = [2,3,4,5,6,7,8,9,10,'J', 'Q', 'K', 'A'];
     const suits = ["spade", "clubs", "diamond", "heart"];
-    return {rank: ranks[Math.floor(i / 4)], suit: suits[i % 4]};
+    return {rank: ranks[Math.floor(i / 4)], suit: suits[i % 4], isSelected: false};
+  }
+  swap() {
+    var tt = this.state.cards;
+    var t = tt[0][0];
+    tt[0][0] = tt[0][1];
+    tt[0][1] = t;
+    this.setState(
+      {
+        tt
+      }
+    )
+  }
+  handleClick(id) {
+    // alert('onClick ' + id);
+    if (this.state.selectIndex != -1) {
+      // alert(this.state.selectIndex);
+      var cards = this.state.cards;
+      var selectedIdex = this.state.selectIndex;
+      
+      var t = cards[selectedIdex];
+      cards[selectedIdex] = cards[id];
+      cards[id] = t;
+
+      // set selected attribute of selectIndex card to false
+      cards[id].isSelected = false;
+
+      this.setState({
+        cards: cards,
+        selectIndex: -1
+      });
+    } else {
+      // alert('Set slected index to ' + id);
+      this.state.cards[id].isSelected = true;
+      this.state.selectIndex = id;
+      this.forceUpdate();
+      /*this.setState({
+         cards: cardsUpdate,
+         selectIndex: id
+      })*/
+    }
   }
   update() {
+    var cardHolders = [];
     var cards = [];
     var minimum = 0, maximum = 51;
 
     for (var i = 0; i < 52; i++) {
-      cards[i] = false;
-    }
-    var players = [];
-    for (let i = 0; i < 4; i++) {
-      players[i] = [];
+      cardHolders[i] = false;
     }
     for (var i = 0; i < 52; i++) {
       var rand = Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
-      while (cards[rand]) {
+      while (cardHolders[rand]) {
         rand = Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
       }
-      cards[rand] = true;
-      players[Math.floor(i / 13)][i % 13] = this.getCard(rand);
+      cardHolders[rand] = true;
+      cards[i] = this.getCard(rand);
     }
 
     this.setState(
       {
-        players : players
+        cards : cards
       }
     )
   }
   render() {
     return (
-      <div>
-        <button onClick={() => {this.update();}}>Start</button>
-        {this.state.players.map((o, i) => (
-          <div>
-            <Player chi1={o.slice(0,5)} chi2={o.slice(5,10)} chi3={o.slice(10)}/>
-          </div>
-          )
-        )}
-      </div>
-    )
-  }
-}
-
-
-class Player extends Component {
-  constructor(props) {
-    super(props);
-  }
-  render() {
-    return (
       <div style={{background: 'green'}}>
-        <div style={{borderStyle: '5px green'}}>
-          {this.props.chi3.map(o => <Card styleName={Card1} rank={o.rank} suit={o.suit}/>)}
+        <div>
+          <button onClick={() => {this.update();}}>Start</button>
+          <button onClick={() => {this.swap();}}>Swap</button>
         </div>
-        <div style={{borderStyle: '5px green'}}>
-          {this.props.chi2.map(o => <Card styleName={Card1} rank={o.rank} suit={o.suit}/>)}
-        </div>
-        <div style={{borderStyle: '5px green'}}>
-          {this.props.chi1.map(o => <Card styleName={Card1} rank={o.rank} suit={o.suit}/>)}
-        </div>
+        {this.state.cards.map((o, i) => <Card id={i} onClick={() => {this.handleClick(i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
       </div>
-
     )
   }
 }
@@ -92,22 +105,37 @@ class Card extends Component {
 
   constructor(props) {
     super(props);
-    this.state = {
-      isSelect: false
-    }
   }
 
-  handleClick(rank, suit) {
-    this.setState({
-      isSelect: !this.state.isSelect
-    });
-    alert('onClick ' + rank + ' ' + suit);
-  }
-
+  /**
+   *  transform: scale(1.1);
+   transition: transform ease 0.25s;
+   * @returns {*}
+   */
   render() {
     var imgSrc = require('./png/' + this.props.rank + "_" + this.props.suit + ".png");
+    if (this.props.isSelected) {
+      return (
+        <span id={this.props.id} style={{
+          marginLeft: '5px',
+          marginRight: '5px'
+        }}>
+          <img src={imgSrc} alt={""} style={{
+            height: 'auto',
+            width: 'auto',
+            maxWidth: '80px',
+            maxHeight: '120px',
+            border: 'solid 1px red',
+            backgroundColor: 'white',
+            transform: 'scale(1.25, 1.25)',
+            transition: 'transform ease 0.25s'}}
+            onClick={() => this.props.onClick(this.props.id)}
+          />
+        </span>
+      );
+    }
     return (
-      <span style={{marginLeft: '5px', marginRight: '5px'}}>
+      <span id={this.props.id} style={{marginLeft: '5px', marginRight: '5px'}}>
         <img src={imgSrc} alt={""} style={{
           height: 'auto',
           width: 'auto',
@@ -115,7 +143,7 @@ class Card extends Component {
           maxHeight: '120px',
           border: 'solid 1px red',
           backgroundColor: 'white'}}
-          onClick={() => {this.handleClick(this.props.rank, this.props.suit)}}
+          onClick={() => this.props.onClick(this.props.id)}
         />
       </span>
     );
