@@ -15,6 +15,18 @@ class Game extends Component {
     super(props);
     this.state = {
       cards: [],
+      results: [
+        "Mậu Thầu", //0
+        "Đôi", //1
+        "Thú", //2
+        "Xám chi", //3
+        "Sảnh", //4
+        "Thùng", //5
+        "Cù lũ", //6
+        "Tứ quý", //7
+        "Thùng phá sảnh" //8
+      ],
+      cardResults : [],
       selectIndex: -1
     }
   }
@@ -37,6 +49,105 @@ class Game extends Component {
       }
     )
   }
+  subOne(obj, i) {
+    var t;
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key) && key == i) {
+        break;
+      } else {
+        t = key;
+      }
+    }
+    return t;
+  }
+  foo(arr) {
+    const ranks = [2,3,4,5,6,7,8,9,10,'J', 'Q', 'K', 'A'];
+    const suits = ["spade", "clubs", "diamond", "heart"];
+    var rankMap = [];
+    var suitMap = [];
+    for (var i = 0; i < ranks.length; i++) {
+      rankMap[ranks[i]] = 0;
+    }
+    for (var i = 0; i < suits.length; i++) {
+      suitMap[suits[i]] = 0;
+    }
+    for (var i = 0; i < arr.length; i++) {
+      var rank = arr[i].rank;
+      var suit = arr[i].suit;
+      console.log(rank + ' ' + suit);
+      rankMap[rank]++;
+      suitMap[suit]++;
+    }
+
+    var ans = this.state.results[0];
+    var has3 = false, has2 = false;
+    var straight = 0;
+    var thung = false, sanh = false;
+
+    // "Thùng"
+    for (var i in suitMap) {
+      if (suitMap[i] == arr.length) {
+        ans = this.state.results[5];
+        thung = true;
+        break;
+      }
+    }
+    for (var i in rankMap) {
+      // "Sảnh"
+      if (rankMap.hasOwnProperty(this.subOne(rankMap, i)) && rankMap[i] > 0 && rankMap[i] == rankMap[this.subOne(rankMap, i)]) {
+        ++straight;
+        if ((arr.length == 5 && straight == 4)
+        || (arr.length == 3 && straight == 2)) {
+          sanh = true;
+          ans = this.state.results[4];
+          break;
+        }
+      } else {
+        straight = 0;
+      }
+
+      // calculate "Đôi", "Thú", "Sám chi", "Cù lũ", "Tứ quí"
+      if (rankMap[i] > 3) {
+        ans = this.state.results[7];
+        break;
+      } else if (rankMap[i] > 2) {
+        if (has2) {
+          ans = this.state.results[6];
+          break;
+        } else {
+          has3 = true;
+        }
+      } else if (rankMap[i] > 1) {
+        if (has3) {
+          ans = this.state.results[6];
+          break;
+        } else if (has2) {
+          ans = this.state.results[2];
+          break;
+        } else {
+          has2 = true;
+        }
+      }
+    }
+    if (thung && sanh) {
+      ans = this.state.results[8];
+    } else if (ans == this.state.results[0] && has3) {
+      ans = this.state.results[3];
+    } else if (ans == this.state.results[0] && has2) {
+      ans = this.state.results[1];
+    }
+    return ans;
+  }
+  calculate(cards) {
+    var steps = [[0,5],[5,10],[10,13],[13,18],[18,23],[23,26],[26,31],[31,36],[36,39],[39,44],[44,49],[49,51]];
+    var ans = [];
+    for (var i = 0; i < 12; i++) {
+      var start = steps[i][0];
+      var end = steps[i][1];
+      ans[i] = this.foo(cards.slice(start, end));
+    }
+    return ans;
+  }
   handleClick(id) {
     // alert('onClick ' + id);
     if (this.state.selectIndex != -1) {
@@ -51,8 +162,12 @@ class Game extends Component {
       // set selected attribute of selectIndex card to false
       cards[id].isSelected = false;
 
+      // update cards result
+      var cardResults = this.calculate(cards);
+
       this.setState({
         cards: cards,
+        cardResults: cardResults,
         selectIndex: -1
       });
     } else {
@@ -83,9 +198,12 @@ class Game extends Component {
       cards[i] = this.getCard(rand);
     }
 
+    var cardResults = this.calculate(cards);
+
     this.setState(
       {
-        cards : cards
+        cards : cards,
+        cardResults: cardResults
       }
     )
   }
@@ -125,34 +243,70 @@ class Game extends Component {
               <td></td>
               <td>
                 <h1>Player 1</h1>
-                <div>{player1.chi3.map((o, i) => <Card id={10+i} onClick={() => {this.handleClick(10+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
-                <div>{player1.chi2.map((o, i) => <Card id={5+i} onClick={() => {this.handleClick(5+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
-                <div>{player1.chi1.map((o, i) => <Card id={i} onClick={() => {this.handleClick(i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>
+                  {player1.chi3.map((o, i) => <Card id={10+i} onClick={() => {this.handleClick(10+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[2]}</span></div>
+                  </div>
+                <div>
+                  {player1.chi2.map((o, i) => <Card id={5+i} onClick={() => {this.handleClick(5+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[1]}</span></div>
+                  </div>
+                <div>
+                  {player1.chi1.map((o, i) => <Card id={i} onClick={() => {this.handleClick(i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[0]}</span></div>
+                </div>
               </td>
               <td></td>
             </tr>
             <tr>
               <td>
                 <h1>Player 2</h1>
-                <div>{player2.chi3.map((o, i) => <Card id={23+i} onClick={() => {this.handleClick(23+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
-                <div>{player2.chi2.map((o, i) => <Card id={18+i} onClick={() => {this.handleClick(18+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
-                <div>{player2.chi1.map((o, i) => <Card id={13+i} onClick={() => {this.handleClick(13+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>
+                  {player2.chi3.map((o, i) => <Card id={23+i} onClick={() => {this.handleClick(23+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[5]}</span></div>
+                </div>
+                <div>
+                  {player2.chi2.map((o, i) => <Card id={18+i} onClick={() => {this.handleClick(18+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[4]}</span></div>
+                  </div>
+                <div>
+                  {player2.chi1.map((o, i) => <Card id={13+i} onClick={() => {this.handleClick(13+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[3]}</span></div>
+                  </div>
               </td>
               <td></td>
               <td>
                 <h1>Player 3</h1>
-                <div>{player3.chi3.map((o, i) => <Card id={36+i} onClick={() => {this.handleClick(36+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
-                <div>{player3.chi2.map((o, i) => <Card id={31+i} onClick={() => {this.handleClick(31+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
-                <div>{player3.chi1.map((o, i) => <Card id={26+i} onClick={() => {this.handleClick(26+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>
+                  {player3.chi3.map((o, i) => <Card id={36+i} onClick={() => {this.handleClick(36+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[8]}</span></div>
+                  </div>
+                <div>
+                  {player3.chi2.map((o, i) => <Card id={31+i} onClick={() => {this.handleClick(31+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[7]}</span></div>
+                  </div>
+                <div>
+                  {player3.chi1.map((o, i) => <Card id={26+i} onClick={() => {this.handleClick(26+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[6]}</span></div>
+                  </div>
               </td>
             </tr>
             <tr>
               <td></td>
               <td>
                 <h1>Player 4</h1>
-                <div>{player4.chi3.map((o, i) => <Card id={49+i} onClick={() => {this.handleClick(49+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
-                <div>{player4.chi2.map((o, i) => <Card id={44+i} onClick={() => {this.handleClick(44+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
-                <div>{player4.chi1.map((o, i) => <Card id={39+i} onClick={() => {this.handleClick(39+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}</div>
+                <div>
+                  {player4.chi3.map((o, i) => <Card id={49+i} onClick={() => {this.handleClick(49+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[11]}</span></div>
+                  </div>
+                <div>
+                  {player4.chi2.map((o, i) => <Card id={44+i} onClick={() => {this.handleClick(44+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[10]}</span></div>
+                </div>
+                <div>
+                  {player4.chi1.map((o, i) => <Card id={39+i} onClick={() => {this.handleClick(39+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[9]}</span></div>
+                </div>
                 </td>
               <td></td>
             </tr>
@@ -187,8 +341,8 @@ class Card extends Component {
           <img src={imgSrc} alt={""} style={{
             height: 'auto',
             width: 'auto',
-            maxWidth: '60px',
-            maxHeight: '100px',
+            maxWidth: '70px',
+            maxHeight: '110px',
             border: 'solid 1px red',
             backgroundColor: 'white',
             transform: 'scale(1.25, 1.25)',
@@ -203,8 +357,8 @@ class Card extends Component {
         <img src={imgSrc} alt={""} style={{
           height: 'auto',
           width: 'auto',
-          maxWidth: '60px',
-          maxHeight: '100px',
+          maxWidth: '70px',
+          maxHeight: '110px',
           border: 'solid 1px red',
           backgroundColor: 'white'}}
           onClick={() => this.props.onClick(this.props.id)}
