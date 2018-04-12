@@ -1,44 +1,13 @@
 import React, {Component} from 'react';
 import playingCards from './playing-cards.png';
-import socketIOClient from 'socket.io-client'
+import socket from './socket'
 import './App.css';
 
 class App extends Component {
   render() {
     return (
-      <Game />
+      <Game/>
     )
-  }
-}
-
-class SocketDemo extends Component {
-  constructor() {
-    super()
-    this.state = {
-      endpoint: 'http://localhost:4001/',
-      color: 'white'
-    }
-  }
-  setColor = (color) => {
-    this.setState({color})
-  }
-  send = () => {
-    const socket = socketIOClient(this.state.endpoint);
-    socket.emit('change color', this.state.color);
-  }
-  render() {
-    const socket = socketIOClient(this.state.endpoint);
-    socket.on('change color', (color) => {
-      document.body.style.backgroundColor = color
-    });
-    return (
-      <div style={{textAlign: 'center'}}>
-        <p>Making sure this works</p>
-        <button onClick={() => this.send()}>Change Color</button>
-        <button id="blue" onClick={() => this.setColor('blue')}>Blue</button>
-        <button id="red" onClick={() => this.setColor('red')}>Red</button>
-      </div>
-    );
   }
 }
 
@@ -58,30 +27,26 @@ class Game extends Component {
         "Tứ quý", //7
         "Thùng phá sảnh" //8
       ],
-      cardResults : [],
-      selectIndex: -1,
-      endpoint: 'http://localhost:4001/',
+      cardResults: [],
+      selectIndex: [-1, -1, -1, -1],
     }
   }
+
   componentDidMount() {
-    this.update();
+    socket.on('game update', (obj) => {
+      this.updateReceive(obj);
+    });
+    socket.on('game move', (obj) => {
+      this.updateReceive(obj);
+    });
   }
+
   getCard(i) {
-    const ranks = [2,3,4,5,6,7,8,9,10,'J', 'Q', 'K', 'A'];
+    const ranks = [2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K', 'A'];
     const suits = ["spade", "clubs", "diamond", "heart"];
     return {rank: ranks[Math.floor(i / 4)], suit: suits[i % 4], isSelected: false};
   }
-  swap() {
-    var tt = this.state.cards;
-    var t = tt[0][0];
-    tt[0][0] = tt[0][1];
-    tt[0][1] = t;
-    this.setState(
-      {
-        tt
-      }
-    )
-  }
+
   subOne(obj, i) {
     var t;
     for (var key in obj) {
@@ -93,8 +58,9 @@ class Game extends Component {
     }
     return t;
   }
+
   foo(arr) {
-    const ranks = [2,3,4,5,6,7,8,9,10,'J', 'Q', 'K', 'A'];
+    const ranks = [2, 3, 4, 5, 6, 7, 8, 9, 10, 'J', 'Q', 'K', 'A'];
     const suits = ["spade", "clubs", "diamond", "heart"];
     var rankMap = [];
     var suitMap = [];
@@ -130,7 +96,7 @@ class Game extends Component {
       if (rankMap.hasOwnProperty(this.subOne(rankMap, i)) && rankMap[i] > 0 && rankMap[i] == rankMap[this.subOne(rankMap, i)]) {
         ++straight;
         if ((arr.length == 5 && straight == 4)
-        || (arr.length == 3 && straight == 2)) {
+          || (arr.length == 3 && straight == 2)) {
           sanh = true;
           ans = this.state.results[4];
           break;
@@ -171,8 +137,9 @@ class Game extends Component {
     }
     return ans;
   }
+
   calculate(cards) {
-    var steps = [[0,5],[5,10],[10,13],[13,18],[18,23],[23,26],[26,31],[31,36],[36,39],[39,44],[44,49],[49,52]];
+    var steps = [[0, 5], [5, 10], [10, 13], [13, 18], [18, 23], [23, 26], [26, 31], [31, 36], [36, 39], [39, 44], [44, 49], [49, 52]];
     var ans = [];
     for (var i = 0; i < 12; i++) {
       var start = steps[i][0];
@@ -181,6 +148,7 @@ class Game extends Component {
     }
     return ans;
   }
+
   validate(oldIndex, newIndex) {
     var ans;
     if (Math.floor(newIndex / 13) != Math.floor(oldIndex / 13)) {
@@ -190,14 +158,15 @@ class Game extends Component {
     }
     return ans;
   }
-  handleClick(id) {
+
+  handleClick(player, id) {
     // alert('onClick ' + id);
-    if (this.state.selectIndex != -1) {
-      // alert(this.state.selectIndex);
-      var validate = this.validate(this.state.selectIndex, id);
+    if (this.state.selectIndex[player] != -1) {
+      // alert(this.state.selectIndex[player]);
+      var validate = this.validate(this.state.selectIndex[player], id);
       if (validate) {
         var cards = this.state.cards;
-        var selectedIdex = this.state.selectIndex;
+        var selectedIdex = this.state.selectIndex[player];
 
         var t = cards[selectedIdex];
         cards[selectedIdex] = cards[id];
@@ -209,36 +178,36 @@ class Game extends Component {
         // update cards result
         var cardResults = this.calculate(cards);
 
+        var selectIndex = this.state.selectIndex;
+        selectIndex[player] = -1;
+
         // this.setState();
         this.sendMove({
           cards: cards,
           cardResults: cardResults,
-          selectIndex: -1
+          selectIndex: selectIndex
         });
       }
     } else {
       // alert('Set slected index to ' + id);
-      this.state.cards[id].isSelected = true;
-      this.state.selectIndex = id;
-      this.forceUpdate();
-      /*this.setState({
-         cards: cardsUpdate,
-         selectIndex: id
-      })*/
       var cards = this.state.cards;
       cards[id].isSelected = true;
-      var cardsResult = this.state.cardResults;
-      var selectedIdex = id;
+
+      var selectIndex = this.state.selectIndex;
+      selectIndex[player] = id;
+
       this.sendMove({
         cards: cards,
-        cardResults: cardResults,
-        selectIndex: selectedIdex
+        selectIndex: selectIndex,
+
       })
     }
   }
+
   updateReceive = (obj) => {
     this.setState(obj);
   };
+
   update() {
     var cardHolders = [];
     var cards = [];
@@ -265,135 +234,159 @@ class Game extends Component {
       }
     )*/
     this.sendUpdate({
-      cards : cards,
+      cards: cards,
       cardResults: cardResults
     });
   }
+
   sendUpdate = (obj) => {
-    const socket = socketIOClient(this.state.endpoint);
     socket.emit('game update', obj);
   };
   sendMove = (obj) => {
-    const socket = socketIOClient(this.state.endpoint);
     socket.emit('game move', obj);
   };
+
   render() {
-    const socket = socketIOClient(this.state.endpoint);
-    socket.on('game update', (obj) => {
-      this.updateReceive(obj);
-    });
-    socket.on('game move', (obj) => {
-      this.updateReceive(obj);
-    });
     var player1 = {
-      chi1: this.state.cards.slice(0,5),
-      chi2: this.state.cards.slice(5,10),
-      chi3: this.state.cards.slice(10,13),
+      chi1: this.state.cards.slice(0, 5),
+      chi2: this.state.cards.slice(5, 10),
+      chi3: this.state.cards.slice(10, 13),
     };
 
     var player2 = {
-      chi1: this.state.cards.slice(13,18),
-      chi2: this.state.cards.slice(18,23),
-      chi3: this.state.cards.slice(23,26),
+      chi1: this.state.cards.slice(13, 18),
+      chi2: this.state.cards.slice(18, 23),
+      chi3: this.state.cards.slice(23, 26),
     };
 
     var player3 = {
-      chi1: this.state.cards.slice(26,31),
-      chi2: this.state.cards.slice(31,36),
-      chi3: this.state.cards.slice(36,39),
+      chi1: this.state.cards.slice(26, 31),
+      chi2: this.state.cards.slice(31, 36),
+      chi3: this.state.cards.slice(36, 39),
     };
 
     var player4 = {
-      chi1: this.state.cards.slice(39,44),
-      chi2: this.state.cards.slice(44,49),
+      chi1: this.state.cards.slice(39, 44),
+      chi2: this.state.cards.slice(44, 49),
       chi3: this.state.cards.slice(49),
     };
     return (
       <div style={{background: 'green'}}>
         <div>
-          <button onClick={() => {this.update();}}>Anyone can play start \n (client will submit start event)</button>
-          <button onClick={() => {this.swap();}}>Swap</button>
+          <button onClick={() => {
+            this.update();
+          }}>Anyone can play start \n (client will submit start event)
+          </button>
+          <button onClick={() => {
+            this.swap();
+          }}>Swap
+          </button>
         </div>
-        <table style={{width:'100%'}}>
+        <table style={{width: '100%'}}>
           <tbody>
-            <tr>
-              <td></td>
-              <td>
-                <h1>Player 1</h1>
-                <div>
-                  {player1.chi3.map((o, i) => <Card id={10+i} onClick={() => {this.handleClick(10+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[2]}</span></div>
-                  </div>
-                <div>
-                  {player1.chi2.map((o, i) => <Card id={5+i} onClick={() => {this.handleClick(5+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[1]}</span></div>
-                  </div>
-                <div>
-                  {player1.chi1.map((o, i) => <Card id={i} onClick={() => {this.handleClick(i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[0]}</span></div>
+          <tr>
+            <td></td>
+            <td>
+              <h1>Player 1</h1>
+              <div>
+                {player1.chi3.map((o, i) => <Card id={10 + i} onClick={() => {
+                  this.handleClick(0, 10 + i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[2]}</span></div>
+              </div>
+              <div>
+                {player1.chi2.map((o, i) => <Card id={5 + i} onClick={() => {
+                  this.handleClick(0, 5 + i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[1]}</span></div>
+              </div>
+              <div>
+                {player1.chi1.map((o, i) => <Card id={i} onClick={() => {
+                  this.handleClick(0, i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[0]}</span></div>
+              </div>
+            </td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              <h1>Player 2</h1>
+              <div>
+                {player2.chi3.map((o, i) => <Card id={23 + i} onClick={() => {
+                  this.handleClick(1, 23 + i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[5]}</span></div>
+              </div>
+              <div>
+                {player2.chi2.map((o, i) => <Card id={18 + i} onClick={() => {
+                  this.handleClick(1, 18 + i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[4]}</span></div>
+              </div>
+              <div>
+                {player2.chi1.map((o, i) => <Card id={13 + i} onClick={() => {
+                  this.handleClick(1, 13 + i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[3]}</span></div>
+              </div>
+            </td>
+            <td><GameEvent messages={this.state.results} /></td>
+            <td>
+              <h1>Player 3</h1>
+              <div>
+                {player3.chi3.map((o, i) => <Card id={36 + i} onClick={() => {
+                  this.handleClick(2, 36 + i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[8]}</span></div>
+              </div>
+              <div>
+                {player3.chi2.map((o, i) => <Card id={31 + i} onClick={() => {
+                  this.handleClick(2, 31 + i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[7]}</span></div>
+              </div>
+              <div>
+                {player3.chi1.map((o, i) => <Card id={26 + i} onClick={() => {
+                  this.handleClick(2, 26 + i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[6]}</span></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>
+              <h1>Player 4</h1>
+              <div>
+                {player4.chi3.map((o, i) => <Card id={49 + i} onClick={() => {
+                  this.handleClick(3, 49 + i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[11]}</span>
                 </div>
-              </td>
-              <td></td>
-            </tr>
-            <tr>
-              <td>
-                <h1>Player 2</h1>
-                <div>
-                  {player2.chi3.map((o, i) => <Card id={23+i} onClick={() => {this.handleClick(23+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[5]}</span></div>
+              </div>
+              <div>
+                {player4.chi2.map((o, i) => <Card id={44 + i} onClick={() => {
+                  this.handleClick(3, 44 + i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[10]}</span>
                 </div>
-                <div>
-                  {player2.chi2.map((o, i) => <Card id={18+i} onClick={() => {this.handleClick(18+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[4]}</span></div>
-                  </div>
-                <div>
-                  {player2.chi1.map((o, i) => <Card id={13+i} onClick={() => {this.handleClick(13+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[3]}</span></div>
-                  </div>
-              </td>
-              <td></td>
-              <td>
-                <h1>Player 3</h1>
-                <div>
-                  {player3.chi3.map((o, i) => <Card id={36+i} onClick={() => {this.handleClick(36+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[8]}</span></div>
-                  </div>
-                <div>
-                  {player3.chi2.map((o, i) => <Card id={31+i} onClick={() => {this.handleClick(31+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[7]}</span></div>
-                  </div>
-                <div>
-                  {player3.chi1.map((o, i) => <Card id={26+i} onClick={() => {this.handleClick(26+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[6]}</span></div>
-                  </div>
-              </td>
-            </tr>
-            <tr>
-              <td></td>
-              <td>
-                <h1>Player 4</h1>
-                <div>
-                  {player4.chi3.map((o, i) => <Card id={49+i} onClick={() => {this.handleClick(49+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[11]}</span></div>
-                  </div>
-                <div>
-                  {player4.chi2.map((o, i) => <Card id={44+i} onClick={() => {this.handleClick(44+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[10]}</span></div>
-                </div>
-                <div>
-                  {player4.chi1.map((o, i) => <Card id={39+i} onClick={() => {this.handleClick(39+i)}} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
-                  <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[9]}</span></div>
-                </div>
-                </td>
-              <td></td>
-            </tr>
+              </div>
+              <div>
+                {player4.chi1.map((o, i) => <Card id={39 + i} onClick={() => {
+                  this.handleClick(3, 39 + i)
+                }} styleName={Card1} rank={o.rank} suit={o.suit} isSelected={o.isSelected}/>)}
+                <div style={{marginLeft: '5px'}}><span style={{color: 'white'}}>{this.state.cardResults[9]}</span></div>
+              </div>
+            </td>
+            <td></td>
+          </tr>
           </tbody>
         </table>
       </div>
     )
   }
 }
-
 
 
 class Card extends Component {
@@ -423,8 +416,9 @@ class Card extends Component {
             border: 'solid 1px red',
             backgroundColor: 'white',
             transform: 'scale(1.25, 1.25)',
-            transition: 'transform ease 0.25s'}}
-            onClick={() => this.props.onClick(this.props.id)}
+            transition: 'transform ease 0.25s'
+          }}
+               onClick={() => this.props.onClick(this.props.id)}
           />
         </span>
       );
@@ -437,11 +431,25 @@ class Card extends Component {
           maxWidth: '70px',
           maxHeight: '110px',
           border: 'solid 1px red',
-          backgroundColor: 'white'}}
-          onClick={() => this.props.onClick(this.props.id)}
+          backgroundColor: 'white'
+        }}
+             onClick={() => this.props.onClick(this.props.id)}
         />
       </span>
     );
+  }
+}
+
+class GameEvent extends Component {
+  constructor(props) {
+    super(props);
+  }
+  render() {
+    return (
+      <ul>
+        {this.props.messages.map((o) => <li>{o}</li>)}
+      </ul>
+    )
   }
 }
 
