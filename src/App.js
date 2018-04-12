@@ -1,11 +1,43 @@
 import React, {Component} from 'react';
 import playingCards from './playing-cards.png';
+import socketIOClient from 'socket.io-client'
 import './App.css';
 
 class App extends Component {
   render() {
     return (
       <Game />
+    )
+  }
+}
+
+class SocketDemo extends Component {
+  constructor() {
+    super()
+    this.state = {
+      endpoint: 'http://localhost:4001/',
+      color: 'white'
+    }
+  }
+  setColor = (color) => {
+    this.setState({color})
+  }
+  send = () => {
+    const socket = socketIOClient(this.state.endpoint);
+    socket.emit('change color', this.state.color);
+  }
+  render() {
+    const socket = socketIOClient(this.state.endpoint);
+    socket.on('change color', (color) => {
+      document.body.style.backgroundColor = color
+    });
+    return (
+      <div style={{textAlign: 'center'}}>
+        <p>Making sure this works</p>
+        <button onClick={() => this.send()}>Change Color</button>
+        <button id="blue" onClick={() => this.setColor('blue')}>Blue</button>
+        <button id="red" onClick={() => this.setColor('red')}>Red</button>
+      </div>
     );
   }
 }
@@ -27,7 +59,8 @@ class Game extends Component {
         "Thùng phá sảnh" //8
       ],
       cardResults : [],
-      selectIndex: -1
+      selectIndex: -1,
+      endpoint: 'http://localhost:4001/',
     }
   }
   componentDidMount() {
@@ -176,7 +209,8 @@ class Game extends Component {
         // update cards result
         var cardResults = this.calculate(cards);
 
-        this.setState({
+        // this.setState();
+        this.sendMove({
           cards: cards,
           cardResults: cardResults,
           selectIndex: -1
@@ -191,8 +225,20 @@ class Game extends Component {
          cards: cardsUpdate,
          selectIndex: id
       })*/
+      var cards = this.state.cards;
+      cards[id].isSelected = true;
+      var cardsResult = this.state.cardResults;
+      var selectedIdex = id;
+      this.sendMove({
+        cards: cards,
+        cardResults: cardResults,
+        selectIndex: selectedIdex
+      })
     }
   }
+  updateReceive = (obj) => {
+    this.setState(obj);
+  };
   update() {
     var cardHolders = [];
     var cards = [];
@@ -212,14 +258,33 @@ class Game extends Component {
 
     var cardResults = this.calculate(cards);
 
-    this.setState(
+    /*this.setState(
       {
         cards : cards,
         cardResults: cardResults
       }
-    )
+    )*/
+    this.sendUpdate({
+      cards : cards,
+      cardResults: cardResults
+    });
   }
+  sendUpdate = (obj) => {
+    const socket = socketIOClient(this.state.endpoint);
+    socket.emit('game update', obj);
+  };
+  sendMove = (obj) => {
+    const socket = socketIOClient(this.state.endpoint);
+    socket.emit('game move', obj);
+  };
   render() {
+    const socket = socketIOClient(this.state.endpoint);
+    socket.on('game update', (obj) => {
+      this.updateReceive(obj);
+    });
+    socket.on('game move', (obj) => {
+      this.updateReceive(obj);
+    });
     var player1 = {
       chi1: this.state.cards.slice(0,5),
       chi2: this.state.cards.slice(5,10),
@@ -246,7 +311,7 @@ class Game extends Component {
     return (
       <div style={{background: 'green'}}>
         <div>
-          <button onClick={() => {this.update();}}>Start</button>
+          <button onClick={() => {this.update();}}>Anyone can play start \n (client will submit start event)</button>
           <button onClick={() => {this.swap();}}>Swap</button>
         </div>
         <table style={{width:'100%'}}>
